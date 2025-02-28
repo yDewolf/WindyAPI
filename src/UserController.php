@@ -64,6 +64,7 @@ class UserController {
                 }
 
                 if (!$this->gateway->checkCorrectPassword($id, $data["password"])) {
+                    http_response_code(401);
                     echo json_encode([
                         "message" => "Incorrect password"
                     ]);
