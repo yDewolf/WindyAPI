@@ -6,5 +6,7 @@ CREATE TABLE users (
     nickname varchar(64) NOT NULL,
     email varchar(200) NOT NULL,
     password varchar(256) NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT UC_Username UNIQUE (username),
+    CONSTRAINT UC_Email UNIQUE (email)
 );
