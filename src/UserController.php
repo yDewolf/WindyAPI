@@ -72,7 +72,7 @@ class UserController {
                     break;
                 }
                 
-                // $rows_affected = $this->gateway->deleteUser($id, $data);
+                $rows_affected = $this->gateway->deleteUser($id, $data);
 
                 echo json_encode([
                     "message" => "User {$id} deleted Successfully",
