@@ -1,5 +1,7 @@
 CREATE DATABASE windy_db;
 
+USE windy_db;
+
 CREATE TABLE users (
     id INT NOT NULL AUTO_INCREMENT,
     username varchar(64) NOT NULL,
