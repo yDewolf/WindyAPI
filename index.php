@@ -21,20 +21,9 @@ set_exception_handler("ErrorHandler::handleException");
 
 header("Content-type: application/json; charset=UTF-8");
 
+$classes = [];
+$router = new Router([]);
+$router->parseRouteIni("routes.ini");
 
-// $parts = explode("/", $_SERVER["REQUEST_URI"]);
-$database = new Database("localhost", "windy_db", "root", "");
-
-$gateway = new UsersGateway($database);
-$controller = new UserController($gateway);
-
-$getUserRoute = new Route("getUser", ["id" => true], $controller);
-
-$router = new Router([$getUserRoute]);
 $router->parseURI($_SERVER["REQUEST_METHOD"], $_SERVER["REQUEST_URI"]);
 
-// $id = $parts[2] ?? null;
-
-// # Use a config file later
-
-// $controller->processRequest($_SERVER["REQUEST_METHOD"], $id);

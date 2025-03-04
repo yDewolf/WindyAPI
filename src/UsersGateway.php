@@ -3,7 +3,8 @@
 class UsersGateway {
     private PDO $conn;
 
-    public function __construct(Database $database) {
+    public function __construct() {
+        $database = new Database("localhost", "windy_db", "root", "");
         $this->conn = $database->getConnection();
     }
 

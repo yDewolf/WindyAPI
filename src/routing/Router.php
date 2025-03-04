@@ -5,8 +5,50 @@ class Router {
 
     public function __construct(array $routes) {
         foreach ($routes as $route) {
-            $this->routes[$route->getURL()] = $route;
+            $this->addRoute($route);
         }
+    }
+
+    public function parseRouteIni(string $ini_path) {
+        $route_config = parse_ini_file($ini_path, true);
+
+        $classes = [];
+
+        foreach (array_keys($route_config) as $key) {
+            $key_parts = explode(".", $key);
+            if (!key_exists($key_parts[0], $classes)) {
+                // Create an instance of the class based on the path
+                $class = new $key_parts[0]();
+                $classes[$key_parts[0]] = $class;
+            }
+            $class = $classes[$key_parts[0]];
+            $route_parameters = [];
+
+            $parameters_ini = $route_config[$key]["parameters"];
+            if ($parameters_ini != "[]") {
+                foreach (array_keys($parameters_ini) as $param_key) {
+                    $route_parameters[$param_key] = (bool) $parameters_ini[$param_key];
+                }
+            }
+
+            $bodyInput = false;
+            if (key_exists("bodyInput", $route_config[$key])) {
+                $bodyInput = (bool) $route_config[$key]["bodyInput"];
+            }
+
+            $route = new Route(
+                str_replace(".", "/", explode("$key_parts[0].", $key)[1]),
+                $bodyInput,
+                $route_parameters,
+                $class
+            );
+
+            $this->addRoute($route);
+        }
+    }
+
+    public function addRoute(Route $route) {
+        $this->routes[$route->getURL()] = $route;
     }
 
     public function parseURI(string $method, string $uri) {
@@ -20,10 +62,12 @@ class Router {
             foreach ($this->routes as $route) {
                 $valid_routes[] = $route->getURL();
             }
-            
+            $current_route = array_slice(explode("/", $exploded_uri[0]), 2);
+
             http_response_code(404);
             echo json_encode([
                 "message" => "No routes were found",
+                "current_route" => $current_route,
                 "valid" => $valid_routes
             ]);
 
@@ -32,14 +76,18 @@ class Router {
 
         $parameters = $this->queryToAssociativeArray($exploded_uri[1] ?? null);
 
-        $errors = $this->validateRouteQuery($parameters, $route);
-        if (!empty($errors)) {
-            http_response_code(422);
-            echo json_encode([
-                "errors" => $errors
-            ]);
+        # Check for parameter errors if the route uses query parameters
+        if (!$route->getBodyInput()) {
+            $errors = $this->validateRouteQuery($parameters, $route);
+            if (!empty($errors)) {
+                http_response_code(422);
+                echo json_encode([
+                    "errors" => $errors
+                ]);
+                
+                return;
+            }
             
-            return;
         }
 
         return $route->processRequest($method, $parameters);

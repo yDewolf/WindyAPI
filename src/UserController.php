@@ -1,13 +1,14 @@
 <?php
 
 class UserController implements RequestHandler {
+    private UsersGateway $gateway;
 
-    public function __construct(private UsersGateway $gateway) {
-
+    public function __construct() {
+        $this->gateway = new UsersGateway();
     }
 
     public function processRequest(string $method, array $parameters): void {
-        $id = $parameters["id"];
+        $id = $parameters["id"] ?? null;
         
         if ($id) {
             $this->processResourceRequest($method, $id);
