@@ -31,14 +31,19 @@ class Router {
                 }
             }
 
-            $bodyInput = false;
-            if (key_exists("bodyInput", $route_config[$key])) {
-                $bodyInput = (bool) $route_config[$key]["bodyInput"];
+            $validateQuery = true;
+            if (key_exists("validateQuery", $route_config[$key])) {
+                $validateQuery = (bool) $route_config[$key]["validateQuery"];
+            }
+            $method = "GET";
+            if (key_exists("method", $route_config[$key])) {
+                $method = $route_config[$key]["method"];
             }
 
             $route = new Route(
+                $method,
                 str_replace(".", "/", explode("$key_parts[0].", $key)[1]),
-                $bodyInput,
+                $validateQuery,
                 $route_parameters,
                 $class
             );
@@ -74,10 +79,20 @@ class Router {
             return;
         }
 
+        if ($route->getMethod() != $method) {
+            http_response_code(405);
+            echo json_encode([
+                "message" => "Wrong method for route '{$route->getUrl()}'",
+                "correct_method" => $route->getMethod()
+            ]);
+        
+            return;
+        }
+
         $parameters = $this->queryToAssociativeArray($exploded_uri[1] ?? null);
 
         # Check for parameter errors if the route uses query parameters
-        if (!$route->getBodyInput()) {
+        if ($route->getValidateQuery()) {
             $errors = $this->validateRouteQuery($parameters, $route);
             if (!empty($errors)) {
                 http_response_code(422);
@@ -90,7 +105,7 @@ class Router {
             
         }
 
-        return $route->processRequest($method, $parameters);
+        return $route->processRequest($parameters);
     }
     
     /*  
