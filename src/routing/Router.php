@@ -105,7 +105,9 @@ class Router {
             
         }
 
-        return $route->processRequest($parameters);
+        $body_data = (array) json_decode(file_get_contents("php://input"), true);
+
+        return $route->processRequest($parameters, $body_data);
     }
     
     /*  

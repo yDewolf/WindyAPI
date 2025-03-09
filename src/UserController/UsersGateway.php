@@ -1,7 +1,5 @@
 <?php
 
-require __DIR__ . "src/utils/RandomTokenGen.php";
-
 class UsersGateway {
     private PDO $conn;
 
@@ -89,6 +87,21 @@ class UsersGateway {
         return $stmt->rowCount();
     }
 
+    public function getUserToken(string $username, string $password): array {
+        $sql = "SELECT token FROM users
+                WHERE username = :username AND password = :password";
+
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindValue(":password", $password, PDO::PARAM_STR);
+        $stmt->bindValue(":username", $username, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data;
+    }
+
     public function checkCorrectPassword(string $id, string $password): bool {
         $sql = "SELECT COUNT(*) FROM users
                 WHERE id = :id && password = :password";
@@ -97,6 +110,20 @@ class UsersGateway {
     
         $stmt->bindValue(":id", $id, PDO::PARAM_INT);
         $stmt->bindValue(":password", $password, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        return (bool) $stmt->fetch(PDO::FETCH_ASSOC)["COUNT(*)"];
+    }
+
+    public function validateToken(string $id, string $token): bool {
+        $sql = "SELECT COUNT(*) FROM users
+                WHERE id = :id && token = :token";
+        
+        $stmt = $this->conn->prepare($sql);
+    
+        $stmt->bindValue(":id", $id, PDO::PARAM_INT);
+        $stmt->bindValue(":token", $token, PDO::PARAM_STR);
 
         $stmt->execute();
 

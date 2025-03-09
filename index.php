@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+require __DIR__ . "/src/utils/RandomTokenGen.php";
+require __DIR__ . "/src/utils/ControllerUtils.php";
+
 spl_autoload_register(function ($class) {
     $paths = [
+        "/src/$class/$class.php",
         "/src/$class.php",
         "/src/routing/$class.php"
     ];

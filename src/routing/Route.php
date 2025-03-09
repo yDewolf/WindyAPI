@@ -26,8 +26,8 @@ class Route {
         return $this->params;
     }
 
-    public function processRequest(array $parameters) {
+    public function processRequest(array $parameters, array $body_data) {
         $url = $this->url;
-        return $this->handler->$url($parameters);
+        return $this->handler->$url($parameters, $body_data);
     }
 }

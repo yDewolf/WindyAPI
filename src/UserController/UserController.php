@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/UsersGateway.php";
+
 class UserController implements RequestHandler {
     private UsersGateway $gateway;
 
@@ -11,20 +13,19 @@ class UserController implements RequestHandler {
         API Methods
     */
     
-    public function getUsers($parameters) {
+    public function getUsers($parameters, $body_data) {
         echo json_encode($this->gateway->getAll());
     }
 
-    public function createUser($parameters) {
-        $data = (array) json_decode(file_get_contents("php://input"), true);
-        $errors = $this->getValidationErrors($data);
+    public function createUser($parameters, $body_data) {
+        $errors = getValidationErrors($body_data);
         if (!empty($errors)) {
             http_response_code(222);
             echo json_encode(["errors" => $errors]);
             return;
         }
         
-        $id = $this->gateway->createUser($data);
+        $id = $this->gateway->createUser($body_data);
 
         http_response_code(201);
         echo json_encode([
@@ -33,7 +34,7 @@ class UserController implements RequestHandler {
         ]);
     }
 
-    public function getUser($parameters) {
+    public function getUser($parameters, $body_data) {
         $user_data = $this->getUserData($parameters["id"]);
 
         echo json_encode([
@@ -42,12 +43,11 @@ class UserController implements RequestHandler {
         ]);
     }
 
-    public function updateUser($parameters) {
+    public function updateUser($parameters, $body_data) {
         $id = $parameters["id"];
         $user_data = $this->getUserData($id);
 
-        $data = (array) json_decode(file_get_contents("php://input"), true);
-        $errors = $this->getValidationErrors($data, false);
+        $errors = getValidationErrors($body_data, false);
 
         if (!empty($errors)) {
             http_response_code(222);
@@ -55,7 +55,7 @@ class UserController implements RequestHandler {
             return;
         }
         
-        $rows_affected = $this->gateway->updateUser($user_data, $data);
+        $rows_affected = $this->gateway->updateUser($user_data, $body_data);
 
         echo json_encode([
             "message" => "User {$id} updated Successfully",
@@ -63,18 +63,17 @@ class UserController implements RequestHandler {
         ]);
     }
 
-    public function deleteUser($parameters) {
+    public function deleteUser($parameters, $body_data) {
         $id = $parameters["id"];
 
-        $data = (array) json_decode(file_get_contents("php://input"), true);
-        $errors = $this->getValidationErrors($data, false, ["password"]);
+        $errors = getValidationErrors($body_data, false, ["password"]);
         if (!empty($errors)) {
             http_response_code(222);
             echo json_encode(["errors" => $errors]);
             return;
         }
 
-        if (!$this->gateway->checkCorrectPassword($id, $data["password"])) {
+        if (!$this->gateway->checkCorrectPassword($id, $body_data["password"])) {
             http_response_code(401);
             echo json_encode([
                 "message" => "Incorrect password"
@@ -83,11 +82,33 @@ class UserController implements RequestHandler {
             return;
         }
         
-        $rows_affected = $this->gateway->deleteUser($id, $data);
+        $rows_affected = $this->gateway->deleteUser($id, $body_data);
 
         echo json_encode([
             "message" => "User {$id} deleted Successfully",
             "rows" => $rows_affected
+        ]);
+    }
+
+    public function logInAccount($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["username", "password"])) {
+            return;
+        }
+
+        $token = $this->gateway->getUserToken($body_data["username"], $body_data["password"]);
+        if (empty($token)) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "Invalid username or password"
+            ]);
+            
+            return;
+        }
+
+        http_response_code(200);
+        echo json_encode([
+            "message" => "Logged in successfully",
+            "token" => $token["token"]
         ]);
     }
 
@@ -107,26 +128,5 @@ class UserController implements RequestHandler {
         }
 
         return $user_data;
-    }
-
-    private function getValidationErrors(array $data, bool $not_empty = false, array $required_fields = ["username", "email", "password"]): array {
-        $errors = [];
-
-        if ($not_empty) {
-            if (empty($data)) {
-                $errors["error"] = "At least one field should be filled";
-            }
-
-            return $errors;
-        }
-
-        for ($i = 0; $i < count($required_fields); $i++) {
-            if (empty($data[$required_fields[$i]])) {
-                $formatted = ucwords($required_fields[$i]);
-                $errors["$required_fields[$i]"] = "{$formatted} is required in body";
-            }
-        }
-
-        return $errors;
     }
 }
