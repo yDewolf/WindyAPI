@@ -52,12 +52,13 @@ class SocialsController implements RequestHandler {
             $sender_id = $body_data["receiver_id"];
             $body_data["receiver_id"] = $body_data["sender_id"];
             $body_data["sender_id"] = $sender_id;
+            $body_data["accept"] = true;
 
             echo json_encode([
                 "message" => "Another request from the user you are trying to request friendship already exists. System will automatically accept that request"
             ]);
 
-            $this->acceptFriendRequest($parameters, $body_data);    
+            $this->updateFriendRequest($parameters, $body_data);    
             return;
         }
 
@@ -87,7 +88,7 @@ class SocialsController implements RequestHandler {
         ]);
     }
 
-    public function acceptFriendRequest($parameters, $body_data) {
+    public function updateFriendRequest($parameters, $body_data) {
         if (!handleValidationErrors($body_data, true, ["token", "receiver_id", "request_id"])) {
             return;
         }
@@ -100,12 +101,68 @@ class SocialsController implements RequestHandler {
             ]);
             return;
         }
-
-        $this->socials_gateway->acceptFriendRequest($body_data["request_id"]);
-
+        
         http_response_code(200);
+        if ($body_data["accept"]) {
+            $this->socials_gateway->acceptFriendRequest($body_data["request_id"]);
+            echo json_encode([
+                "message" => "Request accepted successfully"
+            ]);
+            return;
+        }
+
+        $this->socials_gateway->deleteFriendRequest($body_data["request_id"]);
         echo json_encode([
-            "message" => "Request accepted successfully"
+            "message" => "Request denied successfully"
+        ]);
+    }
+
+    public function getFriends($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["token", "user_id"])) {
+            return;
+        }
+
+        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
+
+        $friends = $this->socials_gateway->getFriendships($body_data["user_id"]);
+        echo json_encode([
+            "friends" => $friends
+        ]);
+    }
+
+    public function removeFriendship($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["token", "user_id", "friend_id"])) {
+            return;
+        }
+
+        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
+
+        if (!$this->socials_gateway->alreadyFriendsWith($body_data["user_id"], $body_data["friend_id"])) {
+            http_response_code(400);
+            echo json_encode([
+                "message" => "You aren't friends with this user",
+            ]);
+            
+            return;
+        }
+
+        $this->socials_gateway->removeFriendship($body_data["user_id"], $body_data["friend_id"]);
+        echo json_encode([
+            "message" => "You aren't friends anymore"
         ]);
     }
 }
