@@ -1,6 +1,8 @@
 CREATE TABLE friend_requests (
+    request_id INT AUTO_INCREMENT,
     sender INT NOT NULL,
     receiver INT NOT NULL,
+    PRIMARY KEY (request_id),
     CONSTRAINT FK_SenderId FOREIGN KEY (sender) REFERENCES users(id),
     CONSTRAINT Fk_ReceiverId FOREIGN KEY (receiver) REFERENCES users(id)
 );
