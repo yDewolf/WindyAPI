@@ -13,7 +13,6 @@ spl_autoload_register(function ($class) {
             break;
         }
     }
-
 });
 
 set_error_handler("ErrorHandler::handleError");

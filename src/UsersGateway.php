@@ -1,5 +1,7 @@
 <?php
 
+require __DIR__ . "src/utils/RandomTokenGen.php";
+
 class UsersGateway {
     private PDO $conn;
 
@@ -26,8 +28,8 @@ class UsersGateway {
     }
 
     public function createUser(array $data) {
-        $sql = "INSERT INTO users (username, email, password, nickname)
-                VALUES (:username, :email, :password, :nickname)";
+        $sql = "INSERT INTO users (username, email, password, nickname, token)
+                VALUES (:username, :email, :password, :nickname, :token)";
         
         $stmt = $this->conn->prepare($sql);
 
@@ -35,6 +37,8 @@ class UsersGateway {
         $stmt->bindValue(":email", $data["email"], PDO::PARAM_STR);
         $stmt->bindValue(":password", $data["password"], PDO::PARAM_STR);
         $stmt->bindValue(":nickname", $data["nickname"] ?? $data["username"], PDO::PARAM_STR);
+
+        $stmt->bindValue(":token", random_text('alnum', 16), PDO::PARAM_STR);
 
         $stmt->execute();
 

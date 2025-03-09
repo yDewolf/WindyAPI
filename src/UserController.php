@@ -36,10 +36,10 @@ class UserController implements RequestHandler {
     public function getUser($parameters) {
         $user_data = $this->getUserData($parameters["id"]);
 
-        unset($user_data["password"]);
-        unset($user_data["email"]);
-
-        echo json_encode($user_data);
+        echo json_encode([
+            "id" => $user_data["id"],
+            "nickname" => $user_data["nickname"]
+        ]);
     }
 
     public function updateUser($parameters) {
@@ -123,7 +123,7 @@ class UserController implements RequestHandler {
         for ($i = 0; $i < count($required_fields); $i++) {
             if (empty($data[$required_fields[$i]])) {
                 $formatted = ucwords($required_fields[$i]);
-                $errors["$required_fields[$i]"] = "{$formatted} is required";
+                $errors["$required_fields[$i]"] = "{$formatted} is required in body";
             }
         }
 
