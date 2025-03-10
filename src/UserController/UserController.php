@@ -19,12 +19,23 @@ class UserController implements RequestHandler {
 
     public function createUser($parameters, $body_data) {
         $errors = getValidationErrors($body_data);
+        
+        foreach (["username", "email"] as $field) {
+            if (!key_exists($field, $body_data)) {
+                continue;
+            }
+            
+            if ($this->gateway->checkDuplicateUserField($field, $body_data[$field])) {
+                $errors[$field] = "This $field is already in use";
+            }
+        }
+
         if (!empty($errors)) {
             http_response_code(222);
             echo json_encode(["errors" => $errors]);
             return;
         }
-        
+
         $id = $this->gateway->createUser($body_data);
 
         http_response_code(201);
@@ -36,6 +47,9 @@ class UserController implements RequestHandler {
 
     public function getUser($parameters, $body_data) {
         $user_data = $this->getUserData($parameters["id"]);
+        if (empty($user_data)) {
+            return;
+        }
 
         echo json_encode([
             "id" => $user_data["id"],

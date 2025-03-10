@@ -129,4 +129,17 @@ class UsersGateway {
 
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC)["COUNT(*)"];
     }
+
+    public function checkDuplicateUserField(string $field, string $value) {
+        $sql = "SELECT COUNT(*) FROM users
+                WHERE $field = :$field";
+        
+        $stmt = $this->conn->prepare($sql);
+    
+        $stmt->bindValue(":$field", $value, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        return (bool) $stmt->fetch(PDO::FETCH_ASSOC)["COUNT(*)"];
+    }
 }

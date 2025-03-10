@@ -89,7 +89,7 @@ class SocialsController implements RequestHandler {
     }
 
     public function updateFriendRequest($parameters, $body_data) {
-        if (!handleValidationErrors($body_data, true, ["token", "receiver_id", "request_id"])) {
+        if (!handleValidationErrors($body_data, true, ["token", "receiver_id", "request_id", "accept"])) {
             return;
         }
 
