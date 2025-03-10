@@ -24,7 +24,7 @@ class UserController implements RequestHandler {
             if (!key_exists($field, $body_data)) {
                 continue;
             }
-            
+
             if ($this->gateway->checkDuplicateUserField($field, $body_data[$field])) {
                 $errors[$field] = "This $field is already in use";
             }
@@ -58,17 +58,22 @@ class UserController implements RequestHandler {
     }
 
     public function updateUser($parameters, $body_data) {
-        $id = $parameters["id"];
+        $id = $body_data["id"];
         $user_data = $this->getUserData($id);
 
-        $errors = getValidationErrors($body_data, false);
-
-        if (!empty($errors)) {
-            http_response_code(222);
-            echo json_encode(["errors" => $errors]);
+        if (!handleValidationErrors($body_data, true, ["token"])) {
             return;
         }
-        
+
+        if ($user_data["token"] != $body_data["token"]) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
+
         $rows_affected = $this->gateway->updateUser($user_data, $body_data);
 
         echo json_encode([
@@ -78,14 +83,9 @@ class UserController implements RequestHandler {
     }
 
     public function deleteUser($parameters, $body_data) {
-        $id = $parameters["id"];
+        $id = $body_data["id"];
 
-        $errors = getValidationErrors($body_data, false, ["password"]);
-        if (!empty($errors)) {
-            http_response_code(222);
-            echo json_encode(["errors" => $errors]);
-            return;
-        }
+        if (!handleValidationErrors($body_data, false, ["password", "token"])) { return; }
 
         if (!$this->gateway->checkCorrectPassword($id, $body_data["password"])) {
             http_response_code(401);
@@ -96,7 +96,7 @@ class UserController implements RequestHandler {
             return;
         }
         
-        $rows_affected = $this->gateway->deleteUser($id, $body_data);
+        $rows_affected = $this->gateway->deleteUser($id);
 
         echo json_encode([
             "message" => "User {$id} deleted Successfully",

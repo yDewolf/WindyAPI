@@ -25,7 +25,7 @@ function handleValidationErrors(array $data, bool $not_empty = false, array $req
     $errors = getValidationErrors($data, $not_empty, $required_fields);
 
     if (!empty($errors)) {
-        http_response_code(222);
+        http_response_code(response_code: 222);
         echo json_encode(["errors" => $errors]);
         return false;
     }
