@@ -16,14 +16,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["sender_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!validateToken($this->users_gateway, $body_data)) { return; }
 
         if ($this->socials_gateway->alreadyFriendsWith($body_data["sender_id"], $body_data["receiver_id"])) {
             http_response_code(409);
@@ -73,14 +66,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["receiver_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to make this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!validateToken($this->users_gateway, $body_data)) { return; }
 
         $requests = $this->socials_gateway->getFriendRequests($body_data["receiver_id"]);
         echo json_encode([
@@ -93,14 +79,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["receiver_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!validateToken($this->users_gateway, $body_data)) { return; }
         
         http_response_code(200);
         if ($body_data["accept"]) {
@@ -122,14 +101,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!validateToken($this->users_gateway, $body_data)) { return; }
 
         $friends = $this->socials_gateway->getFriendships($body_data["user_id"]);
         echo json_encode([
@@ -142,21 +114,13 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!validateToken($this->users_gateway, $body_data)) { return; }
 
         if (!$this->socials_gateway->alreadyFriendsWith($body_data["user_id"], $body_data["friend_id"])) {
             http_response_code(400);
             echo json_encode([
                 "message" => "You aren't friends with this user",
             ]);
-            
             return;
         }
 
