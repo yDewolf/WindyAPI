@@ -12,13 +12,13 @@ class SocialsController implements RequestHandler {
     }
 
     public function sendFriendRequest($parameters, $body_data) {
-        if (!handleValidationErrors($body_data, true, ["token", "sender_id", "receiver_id"])) {
+        if (!handleValidationErrors($body_data, true, ["token", "user_id", "receiver_id"])) {
             return;
         }
 
         if (!validateToken($this->users_gateway, $body_data)) { return; }
 
-        if ($this->socials_gateway->alreadyFriendsWith($body_data["sender_id"], $body_data["receiver_id"])) {
+        if ($this->socials_gateway->alreadyFriendsWith($body_data["user_id"], $body_data["receiver_id"])) {
             http_response_code(409);
             echo json_encode([
                 "message" => "You are already friends with that user",
@@ -27,7 +27,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if ($this->socials_gateway->checkRequestExists($body_data["sender_id"], $body_data["receiver_id"])) {
+        if ($this->socials_gateway->checkRequestExists($body_data["user_id"], $body_data["receiver_id"])) {
             http_response_code(409);
             echo json_encode([
                 "message" => "You can't send two friend requests for the same user",
@@ -37,14 +37,14 @@ class SocialsController implements RequestHandler {
         }
         
         # Accept request if the receiver of this request already sent a request to this sender
-        $request_id = $this->socials_gateway->checkRequestExists($body_data["receiver_id"], $body_data["sender_id"]);
+        $request_id = $this->socials_gateway->checkRequestExists($body_data["receiver_id"], $body_data["user_id"]);
         if ($request_id != null) {
             $body_data["request_id"] = $request_id;
 
             # Swap sender and receiver id so the token validation works
             $sender_id = $body_data["receiver_id"];
-            $body_data["receiver_id"] = $body_data["sender_id"];
-            $body_data["sender_id"] = $sender_id;
+            $body_data["receiver_id"] = $body_data["user_id"];
+            $body_data["user_id"] = $sender_id;
             $body_data["accept"] = true;
 
             echo json_encode([
@@ -55,7 +55,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        $this->socials_gateway->sendFriendRequest($body_data["sender_id"], $body_data["receiver_id"]);
+        $this->socials_gateway->sendFriendRequest($body_data["user_id"], $body_data["receiver_id"]);
         echo json_encode([
             "message" => "Friend request sent successfully"
         ]);
