@@ -4,10 +4,11 @@ class Route {
     public function __construct(
         private string $method, 
         private string $url,
+        private string $function_url,
         private bool $validateQuery, 
         private array $params, 
-        private RequestHandler $handler) {
-
+        private RequestHandler $handler
+        ) {
     }
 
     public function getURL(): string {
@@ -27,7 +28,7 @@ class Route {
     }
 
     public function processRequest(array $parameters, array $body_data) {
-        $url = $this->url;
-        return $this->handler->$url($parameters, $body_data);
+        $func_url = $this->function_url;
+        return $this->handler->$func_url($parameters, $body_data);
     }
 }

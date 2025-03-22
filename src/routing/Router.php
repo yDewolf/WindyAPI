@@ -39,10 +39,21 @@ class Router {
             if (key_exists("method", $route_config[$key])) {
                 $method = $route_config[$key]["method"];
             }
+            
+            $function_url = str_replace(".", "/", explode("$key_parts[0].", $key)[1]);
+
+            $route_url = "";
+            if (key_exists("url", $route_config[$key])) {
+                $route_url = $route_config[$key]["url"];
+            } else {
+                $route_url = $function_url;
+            }
+
 
             $route = new Route(
                 $method,
-                str_replace(".", "/", explode("$key_parts[0].", $key)[1]),
+                "api/{$route_url}",
+                $function_url,
                 $validateQuery,
                 $route_parameters,
                 $class
