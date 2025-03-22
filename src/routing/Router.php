@@ -117,6 +117,9 @@ class Router {
         }
 
         $body_data = (array) json_decode(file_get_contents("php://input"), true);
+        if (empty($body_data) & !empty($_REQUEST)) {
+            $body_data = $_REQUEST;
+        }
 
         return $route->processRequest($parameters, $body_data);
     }
