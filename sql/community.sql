@@ -1,8 +1,9 @@
 CREATE TABLE community (
     id int AUTO_INCREMENT,
     owner_id int NOT NULL,
-    name varchar(100) NOT NULL,
-    description varchar(250),
+    name varchar(32) NOT NULL,
+    description varchar(256),
+    creation_date date DEFAULT CURRENT_DATE,
     PRIMARY KEY (id),
     CONSTRAINT FK_OwnerId FOREIGN KEY (owner_id) REFERENCES users(id)
 );
@@ -10,11 +11,11 @@ CREATE TABLE community (
 CREATE TABLE community_roles (
     id int AUTO_INCREMENT,
     perm_level int NOT NULL check (perm_level between 0 AND 3),
-    name varchar(50) NOT NULL,
+    role_name varchar(32) NOT NULL,
     PRIMARY KEY (id)
 );
 
-INSERT INTO community_roles (name, perm_level) VALUES
+INSERT INTO community_roles (role_name, perm_level) VALUES
     ("Member", 0),
     ("Moderator", 1),
     ("Admin", 2),
@@ -29,3 +30,12 @@ CREATE TABLE community_members (
     CONSTRAINT FK_CommunityRole FOREIGN KEY (role_id) REFERENCES community_roles(id)
 );
 
+CREATE TABLE community_posts (
+    id int AUTO_INCREMENT,
+    user_id int NOT NULL,
+    community_id int NOT NULL,
+    post_timestamp timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (community_id) REFERENCES community(id)
+);

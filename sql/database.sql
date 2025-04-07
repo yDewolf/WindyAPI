@@ -4,11 +4,12 @@ USE windy_db;
 
 CREATE TABLE users (
     id INT NOT NULL AUTO_INCREMENT,
-    username varchar(64) NOT NULL,
-    nickname varchar(64) NOT NULL,
-    email varchar(200) NOT NULL,
-    password varchar(256) NOT NULL,
-    token char(16) NOT NULL, 
+    username varchar(32) NOT NULL,
+    nickname varchar(32) NOT NULL,
+    email varchar(64) NOT NULL,
+    password varchar(128) NOT NULL,
+    token char(16) NOT NULL,
+    register_date date DEFAULT CURRENT_DATE,
     PRIMARY KEY (id),
     CONSTRAINT UC_Username UNIQUE (username),
     CONSTRAINT UC_Token UNIQUE (token),
