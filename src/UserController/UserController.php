@@ -36,12 +36,14 @@ class UserController implements RequestHandler {
             return;
         }
 
-        $id = $this->gateway->createUser($body_data);
+        $data = $this->gateway->createUser($body_data);
+
 
         http_response_code(201);
         echo json_encode([
             "message" => "User created Successfully",
-            "id" => $id
+            "id" => $data["id"],
+            "token" => $data["token"]
         ]);
     }
 
@@ -53,19 +55,20 @@ class UserController implements RequestHandler {
 
         echo json_encode([
             "id" => $user_data["id"],
+            "username" => $user_data["username"],
             "nickname" => $user_data["nickname"]
         ]);
     }
 
     public function updateUser($parameters, $body_data) {
-        $id = $body_data["id"];
-        $user_data = $this->getUserData($id);
-
-        if (!handleValidationErrors($body_data, true, ["token"])) {
+        if (!handleValidationErrors($body_data, true, ["user_id", "token"])) {
             return;
         }
+        
+        $id = $body_data["user_id"];
+        $user_data = $this->getUserData($id);
 
-        if ($user_data["token"] != $body_data["token"]) {
+        if (!$this->gateway->validateToken($body_data["user_id"], $body_data["token"])) {
             http_response_code(401);
             echo json_encode([
                 "message" => "You don't have permission to perform this action",
@@ -83,9 +86,18 @@ class UserController implements RequestHandler {
     }
 
     public function deleteUser($parameters, $body_data) {
-        $id = $body_data["id"];
+        if (!handleValidationErrors($body_data, false, ["user_id", "password", "token"])) { return; }
+        
+        $id = $body_data["user_id"];
 
-        if (!handleValidationErrors($body_data, false, ["password", "token"])) { return; }
+        if (!$this->gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
 
         if (!$this->gateway->checkCorrectPassword($id, $body_data["password"])) {
             http_response_code(401);

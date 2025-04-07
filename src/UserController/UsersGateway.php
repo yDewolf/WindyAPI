@@ -9,7 +9,7 @@ class UsersGateway {
     }
 
     public function getAll(): Array {
-        $sql = "SELECT id, username FROM users";
+        $sql = "SELECT id, username, nickname FROM users";
         
         $stmt = $this->conn->query($sql);
 
@@ -32,16 +32,23 @@ class UsersGateway {
         $stmt = $this->conn->prepare($sql);
 
         $stmt->bindValue(":username", $data["username"], PDO::PARAM_STR);
-        $stmt->bindValue(":email", $data["email"], PDO::PARAM_STR);
-        $stmt->bindValue(":password", $data["password"], PDO::PARAM_STR);
+        $stmt->bindValue(":email", password_hash($data["email"], PASSWORD_DEFAULT), PDO::PARAM_STR);
+        $stmt->bindValue(":password", password_hash($data["password"], PASSWORD_DEFAULT), PDO::PARAM_STR);
         $stmt->bindValue(":nickname", $data["nickname"] ?? $data["username"], PDO::PARAM_STR);
 
         $stmt->bindValue(":token", random_text('alnum', 16), PDO::PARAM_STR);
 
         $stmt->execute();
 
-        # Check this later (Kokuro method)
-        return $this->conn->lastInsertId();
+        $sql = "SELECT id, token FROM users
+                WHERE username = :username";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":username", $data["username"], PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getUser(string $id): array | false {
@@ -64,8 +71,8 @@ class UsersGateway {
 
         $stmt = $this->conn->prepare($sql);
 
-        $stmt->bindValue(":password", $new_data["password"] ?? $current_data["password"], PDO::PARAM_STR);
-        $stmt->bindValue(":nickname", $new_data["nickname"] ?? $current_data["nickname"], PDO::PARAM_STR);
+        $stmt->bindValue(":password", password_hash($new_data["password"], PASSWORD_DEFAULT) ?? $current_data["password"], PDO::PARAM_STR);
+        $stmt->bindValue(":nickname", password_hash($new_data["nickname"], PASSWORD_DEFAULT) ?? $current_data["nickname"], PDO::PARAM_STR);
         
         $stmt->bindValue(":id", $current_data["id"], PDO::PARAM_INT);
         
@@ -88,18 +95,21 @@ class UsersGateway {
     }
 
     public function getUserToken(string $username, string $password): array {
-        $sql = "SELECT token FROM users
-                WHERE username = :username AND password = :password";
-
+        $sql = "SELECT password, token FROM users
+                WHERE username = :username";
+        
         $stmt = $this->conn->prepare($sql);
-
-        $stmt->bindValue(":password", $password, PDO::PARAM_STR);
         $stmt->bindValue(":username", $username, PDO::PARAM_STR);
-
+        
         $stmt->execute();
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $data;
+        
+        if (password_verify($password, $data["password"])) {
+            return $data;
+        }
+
+        return [];
     }
 
     public function checkCorrectPassword(string $id, string $password): bool {

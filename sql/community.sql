@@ -1,11 +1,12 @@
-CREATE TABLE community (
+CREATE TABLE communities (
     id int AUTO_INCREMENT,
     owner_id int NOT NULL,
     name varchar(32) NOT NULL,
     description varchar(256),
     creation_date date DEFAULT CURRENT_DATE,
     PRIMARY KEY (id),
-    CONSTRAINT FK_OwnerId FOREIGN KEY (owner_id) REFERENCES users(id)
+    CONSTRAINT FK_OwnerId FOREIGN KEY (owner_id) REFERENCES users(id),
+    CONSTRAINT UC_Name UNIQUE (name)
 );
 
 CREATE TABLE community_roles (
