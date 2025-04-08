@@ -62,7 +62,7 @@ class CommunityController implements RequestHandler {
 
         if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
-        $perm_level = $this->community_gateway->getUserRole($body_data["user_id"])["perm_level"];
+        $perm_level = $this->community_gateway->getUserRole($body_data["user_id"], $body_data["community_id"])["perm_level"];
         if ($perm_level < 3) {
             http_response_code(401);
             echo json_encode([
@@ -71,7 +71,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        $data = $this->community_gateway->getCommunityById($body_data["community_id"]);
+        $data = $this->community_gateway->getcommunity($body_data["community_id"]);
         $this->community_gateway->updateCommunity($body_data["community_id"], $body_data["description"] ?? $data["description"]);
         echo json_encode([
             "message" => "Your community has been updated succesfully"
@@ -101,7 +101,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        $perm_level = $this->community_gateway->getUserRole($body_data["user_id"])["perm_level"];
+        $perm_level = $this->community_gateway->getUserRole($body_data["user_id"], $body_data["community_id"])["perm_level"];
         if ($perm_level < 3) {
             http_response_code(401);
             echo json_encode([
@@ -122,11 +122,11 @@ class CommunityController implements RequestHandler {
     }
 
     public function getCommunity($parameters, $body_data) {
-        if (!handleValidationErrors($body_data, true, ["community_name"])) {
+        if (!handleValidationErrors($body_data, true, ["community_id"])) {
             return;
         }
 
-        $data = $this->community_gateway->getCommunity($body_data["community_name"]);
+        $data = $this->community_gateway->getCommunity($body_data["community_id"]);
         if (empty($data)) {
             http_response_code(404);
             echo json_encode([
@@ -135,6 +135,17 @@ class CommunityController implements RequestHandler {
             return;
         }
 
+        echo json_encode($data);
+    }
+
+    public function getCommunityMembers($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["community_id"])) {
+            return;
+        }
+
+        if (!$this->handleCommunityExists($body_data["community_id"])) { return; }
+
+        $data = $this->community_gateway->getCommunityMembers($body_data["community_id"]);
         echo json_encode($data);
     }
 
@@ -195,9 +206,11 @@ class CommunityController implements RequestHandler {
             return;
         }
 
+        if (!$this->handleCommunityExists($body_data["community_id"])) { return; }
+
         if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
-        if ((int) $body_data["new_role_id"] == CommunityRoles::OWNER) {
+        if ((int) $body_data["new_role_id"] == CommunityRoles::OWNER->value) {
             http_response_code(400);
             echo json_encode([
                 "message" => "Please use the 'transfer-ownership' route to transfer ownership",
@@ -214,6 +227,14 @@ class CommunityController implements RequestHandler {
             return;
         }
 
+        if (!$this->community_gateway->alreadyMemberOf($body_data["target_user_id"], $body_data["community_id"])) {
+            http_response_code(response_code: 400);
+            echo json_encode([
+                "message" => "The user has to be at least a member of the community",
+                "error" => "Bad Request"
+            ]);
+            return;
+        }
 
         $new_role = $body_data["new_role_id"];
         $role_data = $this->community_gateway->getRole($new_role);
@@ -226,7 +247,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        $user_role = $this->community_gateway->getUserRole($body_data["target_user_id"]);
+        $user_role = $this->community_gateway->getUserRole($body_data["target_user_id"], $body_data["community_id"]);
         if ((int) $user_role["role_id"] == (int) $body_data["new_role_id"]) {
             http_response_code(409);
             echo json_encode([
@@ -245,7 +266,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        if ((int) $user_perm_level <= (int) $this->community_gateway->getUserRole($body_data["target_user_id"])["perm_level"]) {
+        if ((int) $user_perm_level <= (int) $this->community_gateway->getUserRole($body_data["target_user_id"], $body_data["community_id"])["perm_level"]) {
             http_response_code(response_code: 401);
             echo json_encode([
                 "message" => "You can only change roles of members with less permission level than you",
@@ -266,6 +287,8 @@ class CommunityController implements RequestHandler {
             return;
         }
 
+        if (!$this->handleCommunityExists($body_data["community_id"])) { return; }
+
         if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
         
         if (!$this->users_gateway->checkCorrectPassword($body_data["user_id"], $body_data["password"])) {
@@ -276,9 +299,18 @@ class CommunityController implements RequestHandler {
 
             return;
         }
+       
+        if (!$this->community_gateway->alreadyMemberOf($body_data["target_user_id"], $body_data["community_id"])) {
+            http_response_code(response_code: 400);
+            echo json_encode([
+                "message" => "The user has to be at least a member of the community",
+                "error" => "Bad Request"
+            ]);
+            return;
+        }
 
-        $user_role = $this->community_gateway->getUserRole($body_data["user_id"]);
-        if ((int) $user_role["role_id"] != CommunityRoles::OWNER) {
+        $user_role = $this->community_gateway->getUserRole($body_data["user_id"], $body_data["community_id"]);
+        if ($user_role["role_id"] != CommunityRoles::OWNER->value) {
             http_response_code(response_code: 401);
             echo json_encode([
                 "message" => "You have to be the owner of the community to transfer ownership",
@@ -296,11 +328,11 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        $this->community_gateway->updateMemberRole($body_data["community_id"], $body_data["target_user_id"], (string) CommunityRoles::OWNER);
-        $this->community_gateway->updateMemberRole($body_data["community_id"], $body_data["user_id"], (string) CommunityRoles::MEMBER);
+        $this->community_gateway->transferOwnership($body_data["community_id"], $body_data["target_user_id"]);
+        $this->community_gateway->updateMemberRole($body_data["community_id"], $body_data["user_id"], CommunityRoles::CO_OWNER->value);
         
         echo json_encode([
-            "message" => "Transferred ownership for {$body_data['target_user_id']} successfully | You are now a member of the community"
+            "message" => "Transferred ownership to {$body_data['target_user_id']} successfully | You are now a co-owner of the community"
         ]);
     }
 

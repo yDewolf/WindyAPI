@@ -15,17 +15,23 @@ class CommunityGateway {
         $stmt = $this->conn->prepare($sql);
 
         $stmt->execute();
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        $data = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row["id"];
+            unset($row["id"]);
+            
+            $data[$id] = $row;
+        }
 
         return $data;
     }
 
-    public function getCommunity(string $community_name) : array | false {
+    public function getCommunity(string $community_id) : array | false {
         $sql = "SELECT * FROM communities
-                WHERE name = :community_name";
+                WHERE id = :community_id";
 
         $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(":community_name", $community_name, PDO::PARAM_STR);
+        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_INT);
 
         $stmt->execute();
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -33,15 +39,22 @@ class CommunityGateway {
         return $data;
     }
 
-    public function getCommunityById(string $community_id) : array | false {
-        $sql = "SELECT * FROM communities
-                WHERE name = :community_id";
+    public function getCommunityMembers(string $community_id) : array {
+        $sql = "SELECT U.id, U.nickname, CR.role_name FROM communities C
+                INNER JOIN community_members CM, users U, community_roles CR
+                WHERE CM.community_id = C.id AND C.id = :community_id AND U.id = CM.user_id AND CR.id = CM.role_id";
 
         $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_STR);
+        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_INT);
 
         $stmt->execute();
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        $data = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row["id"];
+            unset($row["id"]);
+
+            $data[$id] = $row;
+        }
 
         return $data;
     }
@@ -150,6 +163,21 @@ class CommunityGateway {
         $stmt->execute();
     }
 
+    public function transferOwnership(string $community_id, string $user_id) {
+        $this->updateMemberRole($community_id, $user_id, CommunityRoles::OWNER->value);
+        
+        $sql = "UPDATE communities
+                SET owner_id = :owner_id
+                WHERE id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":id", $community_id, PDO::PARAM_INT);
+        $stmt->bindValue(":owner_id", $user_id, PDO::PARAM_INT);
+
+        $stmt->execute();
+    }
+    
+
     public function getRole(string $role_id) {
         $sql = "SELECT * FROM community_roles WHERE id = :role_id";
 
@@ -161,13 +189,14 @@ class CommunityGateway {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getUserRole(string $user_id): array | false {
+    public function getUserRole(string $user_id, string $community_id): array | false {
         $sql = "SELECT R.perm_level, R.role_name, M.role_id FROM community_members M
                 INNER JOIN community_roles R
-                WHERE R.id = M.role_id AND M.user_id = :user_id";
+                WHERE R.id = M.role_id AND M.user_id = :user_id AND M.community_id = :community_id";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(":user_id", $user_id, PDO::PARAM_INT);
+        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_INT);
 
         $stmt->execute();
 
