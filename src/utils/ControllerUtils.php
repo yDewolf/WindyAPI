@@ -33,8 +33,8 @@ function handleValidationErrors(array $data, bool $not_empty = false, array $req
     return true;
 }
 
-function handleTokenValidation(UsersGateway $users_gateway, array $body_data): bool {
-    if (!$users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+function handleTokenValidation(UsersGateway $users_gateway, String $user_id, String $token): bool {
+    if (!$users_gateway->validateToken($user_id, $token)) {
         http_response_code(response_code: 401);
         echo json_encode([
             "message" => "You don't have permission to perform this action",
@@ -45,4 +45,17 @@ function handleTokenValidation(UsersGateway $users_gateway, array $body_data): b
     
     return true;
 
+}
+
+function handlePasswordValidation(UsersGateway $users_gateway, String $user_id, String $password): bool{
+    if (!$users_gateway->checkCorrectPassword($user_id, $password)) {
+        http_response_code(401);
+        echo json_encode([
+            "message" => "Incorrect password"
+        ]);
+    
+        return false;
+    }
+
+    return true;
 }

@@ -68,7 +68,8 @@ class UserController implements RequestHandler {
         $id = $body_data["user_id"];
         $user_data = $this->getUserData($id);
 
-        handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"]);
+        if (!handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"])) { return; }
+
 
         $rows_affected = $this->gateway->updateUser($user_data, $body_data);
 
@@ -83,16 +84,10 @@ class UserController implements RequestHandler {
         
         $id = $body_data["user_id"];
 
-        handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"]);
+        if (!handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
-        if (!$this->gateway->checkCorrectPassword($id, $body_data["password"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "Incorrect password"
-            ]);
 
-            return;
-        }
+        if (!handlePasswordValidation($this->gateway, $body_data["user_id"], $body_data["password"])) { return; }
         
         $rows_affected = $this->gateway->deleteUser($id);
 

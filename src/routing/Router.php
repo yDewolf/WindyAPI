@@ -1,90 +1,87 @@
 <?php 
 
-class Router {
-    private array $routes;
+require_once __DIR__ . "/Route.php";
 
-    public function __construct(array $routes) {
-        foreach ($routes as $route) {
-            $this->addRoute($route);
+class Router {
+    private array $route_config;
+    private array $route_urls;
+
+    public function __construct(private String $route_ini_path) {
+        $this->route_config = parse_ini_file($this->route_ini_path, true);
+        $this->parseRouteUrls();
+    }
+
+    public function parseRouteUrls() {
+        $this->route_urls = [];
+        foreach (array_keys($this->route_config) as $key) {
+            $url = "api/{$this->route_config[$key]['url']}";
+            $this->route_urls[$url] = $key;
         }
     }
 
-    public function parseRouteIni(string $ini_path) {
-        $route_config = parse_ini_file($ini_path, true);
+    public function parseRoute(string $url): Route {
+        $key = $this->route_urls[$url];
+        $key_parts = explode(".", $key);
+        $class = new $key_parts[0]();
 
-        $classes = [];
+        $route_parameters = [];
 
-        foreach (array_keys($route_config) as $key) {
-            $key_parts = explode(".", $key);
-            if (!key_exists($key_parts[0], $classes)) {
-                // Create an instance of the class based on the path
-                $class = new $key_parts[0]();
-                $classes[$key_parts[0]] = $class;
+        $parameters_ini = $this->route_config[$key]["parameters"];
+        if ($parameters_ini != "[]") {
+            foreach (array_keys($parameters_ini) as $param_key) {
+                $route_parameters[$param_key] = (bool) $parameters_ini[$param_key];
             }
-            $class = $classes[$key_parts[0]];
-            $route_parameters = [];
+        }
 
-            $parameters_ini = $route_config[$key]["parameters"];
-            if ($parameters_ini != "[]") {
-                foreach (array_keys($parameters_ini) as $param_key) {
-                    $route_parameters[$param_key] = (bool) $parameters_ini[$param_key];
+        $method = "GET";
+        if (key_exists("method", $this->route_config[$key])) {
+            $method = $this->route_config[$key]["method"];
+        }
+        
+        $function_url = str_replace(".", "/", explode("$key_parts[0].", $key)[1]);
+
+        return new Route(
+            $method,
+            "api/{$url}",
+            $function_url,
+            $route_parameters,
+            $class
+        );
+    }
+
+    public function selectRoute(string $uri): Route | false {
+        $exploded = explode("?", $uri);
+        $url_parts = array_slice(explode("/", $exploded[0]), 2);
+
+        foreach (array_keys($this->route_urls) as $route_url) {
+            $exploded_route = explode("/", ($route_url));
+            
+            $wrong_route = false;
+            for ($i = 0; $i < count($url_parts); $i++) {
+                if ($exploded_route[$i] != $url_parts[$i]) {
+                    $wrong_route = true;
+                    break;
                 }
             }
-
-            $validateQuery = true;
-            if (key_exists("validateQuery", $route_config[$key])) {
-                $validateQuery = (bool) $route_config[$key]["validateQuery"];
-            }
-            $method = "GET";
-            if (key_exists("method", $route_config[$key])) {
-                $method = $route_config[$key]["method"];
-            }
-            
-            $function_url = str_replace(".", "/", explode("$key_parts[0].", $key)[1]);
-
-            $route_url = "";
-            if (key_exists("url", $route_config[$key])) {
-                $route_url = $route_config[$key]["url"];
-            } else {
-                $route_url = $function_url;
-            }
-
-
-            $route = new Route(
-                $method,
-                "api/{$route_url}",
-                $function_url,
-                $validateQuery,
-                $route_parameters,
-                $class
-            );
-
-            $this->addRoute($route);
+            if (!$wrong_route) { return $this->parseRoute($route_url); }
         }
-    }
 
-    public function addRoute(Route $route) {
-        $this->routes[$route->getURL()] = $route;
+        return false;
     }
 
     public function parseURI(string $method, string $uri) {
         # Get parts behind the query
         $exploded_uri = explode("?", $uri);
-        $route = $this->getRoute($exploded_uri[0]);
+        $route = $this->selectRoute($uri);
         
         if ($route == null) {
-            $valid_routes = [];
-
-            foreach ($this->routes as $route) {
-                $valid_routes[] = $route->getURL();
-            }
             $current_route = array_slice(explode("/", $exploded_uri[0]), 2);
 
             http_response_code(404);
             echo json_encode([
                 "message" => "No routes were found",
                 "current_route" => $current_route,
-                "valid" => $valid_routes
+                "valid" => array_keys($this->route_urls)
             ]);
 
             return;
@@ -103,18 +100,6 @@ class Router {
         $parameters = $this->queryToAssociativeArray($exploded_uri[1] ?? null);
 
         # Check for parameter errors if the route uses query parameters
-        if ($route->getValidateQuery()) {
-            $errors = $this->validateRouteQuery($parameters, $route);
-            if (!empty($errors)) {
-                http_response_code(422);
-                echo json_encode([
-                    "errors" => $errors
-                ]);
-                
-                return;
-            }
-            
-        }
 
         $body_data = (array) json_decode(file_get_contents("php://input"), true);
         if (empty($body_data) & !empty($_REQUEST)) {
@@ -144,44 +129,5 @@ class Router {
         }
 
         return $parameters;
-    }
-
-    private function getRoute(string $url): Route | null {
-        # 2 -> offset the url so it ignores the start
-        $url_parts = array_slice(explode("/", $url), 2);
-
-        foreach ($this->routes as $route) {
-            $route_url_parts = explode("/", $route->getURL());
-
-            $wrong_route = false;
-            for ($i = 0; $i < count($url_parts); $i++) {
-                if ($route_url_parts[$i] != $url_parts[$i]) {
-                    $wrong_route = true;
-                    break;
-                }
-            }
-            
-            if ($wrong_route) {
-                continue;
-            }
-
-            return $route;
-        }
-
-        return null;
-    }
-
-    private function validateRouteQuery(array $parameters, Route $route): array {
-        $errors = [];
-
-        $route_params = $route->getParams();
-        foreach (array_keys($route->getParams()) as $key) {
-            # Key is needed and key doesn't exist on provided parameters
-            if ($route_params[$key] && !key_exists($key, $parameters)) {
-                $errors[$key] = "Missing value";
-            }
-        }
-
-        return $errors;
     }
 }

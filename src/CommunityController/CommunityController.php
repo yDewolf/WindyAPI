@@ -26,14 +26,7 @@ class CommunityController implements RequestHandler {
             return;
         }
         
-        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
         if (!empty($this->community_gateway->getCommunity($body_data["name"]))) {
             http_response_code(409);
@@ -60,7 +53,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
         $perm_level = $this->community_gateway->getUserRole($body_data["user_id"], $body_data["community_id"])["perm_level"];
         if ($perm_level < 3) {
@@ -83,14 +76,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->checkCorrectPassword($body_data["user_id"], $body_data["password"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "Incorrect password"
-            ]);
-
-            return;
-        }
+        if (!handlePasswordValidation($this->users_gateway, $body_data["user_id"], $body_data["password"])) { return; }
 
         if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
             http_response_code(401);
@@ -154,9 +140,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            return;
-        }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
         if (!$this->handleCommunityExists($body_data["community_id"])) {
             return;
@@ -181,7 +165,7 @@ class CommunityController implements RequestHandler {
             return;
         }
 
-        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
         if (!$this->handleCommunityExists($body_data["community_id"])) {
             return;
@@ -208,7 +192,7 @@ class CommunityController implements RequestHandler {
 
         if (!$this->handleCommunityExists($body_data["community_id"])) { return; }
 
-        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
 
         if ((int) $body_data["new_role_id"] == CommunityRoles::OWNER->value) {
             http_response_code(400);
@@ -289,17 +273,11 @@ class CommunityController implements RequestHandler {
 
         if (!$this->handleCommunityExists($body_data["community_id"])) { return; }
 
-        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data["user_id"], $body_data["token"])) { return; }
         
-        if (!$this->users_gateway->checkCorrectPassword($body_data["user_id"], $body_data["password"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "Incorrect password"
-            ]);
+        if (!handlePasswordValidation($this->users_gateway, $body_data["user_id"], $body_data["password"])) { return; }
 
-            return;
-        }
-       
+        
         if (!$this->community_gateway->alreadyMemberOf($body_data["target_user_id"], $body_data["community_id"])) {
             http_response_code(response_code: 400);
             echo json_encode([
