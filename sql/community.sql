@@ -20,12 +20,14 @@ INSERT INTO community_roles (role_name, perm_level) VALUES
     ("Member", 0),
     ("Moderator", 1),
     ("Admin", 2),
-    ("Owner", 3);
+    ("Co-Owner", 3);
+    ("Owner", 4);
 
 CREATE TABLE community_members (
     user_id int NOT NULL,
     community_id int NOT NULL,
     role_id int NOT NULL,
+    join_date date DEFAULT CURRENT_DATE,
     CONSTRAINT FK_UserId FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT FK_CommunityId FOREIGN KEY (community_id) REFERENCES communities(id),
     CONSTRAINT FK_CommunityRole FOREIGN KEY (role_id) REFERENCES community_roles(id)

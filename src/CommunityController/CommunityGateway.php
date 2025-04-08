@@ -59,9 +59,9 @@ class CommunityGateway {
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC)["COUNT(*)"];
     }
 
-    public function joinCommunity(string $user_id, string $community_id, int $role_id = 0) {
-        $sql = "INSERT INTO community_members (user_id, community_id, role_id) VALUES
-                (:user_id, :community_id, :role_id)";
+    public function joinCommunity(string $user_id, string $community_id, int $role_id = 1) {
+        $sql = "INSERT INTO community_members (user_id, community_id, role_id)
+                VALUES (:user_id, :community_id, :role_id)";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(":user_id", $user_id, PDO::PARAM_INT);
@@ -134,17 +134,44 @@ class CommunityGateway {
         $stmt->execute();
     }
 
-    public function getRolePermLevel(string $user_id): String | false {
-        $sql = "SELECT R.perm_level FROM community_members M
+
+    public function updateMemberRole(string $community_id, string $user_id, string $new_role_id) {
+        $sql = "UPDATE community_members
+                SET role_id = :role_id
+                WHERE 
+                    community_id = :community_id AND
+                    user_id = :user_id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_INT);
+        $stmt->bindValue(":user_id", $user_id, PDO::PARAM_INT);
+        $stmt->bindValue(":role_id", $new_role_id, PDO::PARAM_INT);
+
+        $stmt->execute();
+    }
+
+    public function getRole(string $role_id) {
+        $sql = "SELECT * FROM community_roles WHERE id = :role_id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":role_id", $role_id, PDO::PARAM_INT);
+
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getUserRole(string $user_id): array | false {
+        $sql = "SELECT R.perm_level, R.role_name, M.role_id FROM community_members M
                 INNER JOIN community_roles R
                 WHERE R.id = M.role_id AND M.user_id = :user_id";
 
         $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(":user_id", $user_id, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $user_id, PDO::PARAM_INT);
 
         $stmt->execute();
 
-        $data = $stmt->fetch(PDO::FETCH_ASSOC)["perm_level"];
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
         return $data;
     }
 
