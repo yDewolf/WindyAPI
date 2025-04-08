@@ -95,14 +95,13 @@ class UsersGateway {
     }
 
     public function getUserToken(string $username, string $password): array {
-        $sql = "SELECT password, token FROM users
+        $sql = "SELECT password, id, token FROM users
                 WHERE username = :username";
         
         $stmt = $this->conn->prepare($sql);
         $stmt->bindValue(":username", $username, PDO::PARAM_STR);
         
         $stmt->execute();
-
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (password_verify($password, $data["password"])) {
@@ -113,17 +112,21 @@ class UsersGateway {
     }
 
     public function checkCorrectPassword(string $id, string $password): bool {
-        $sql = "SELECT COUNT(*) FROM users
-                WHERE id = :id && password = :password";
+        $sql = "SELECT password FROM users
+                WHERE id = :id";
         
         $stmt = $this->conn->prepare($sql);
     
         $stmt->bindValue(":id", $id, PDO::PARAM_INT);
-        $stmt->bindValue(":password", $password, PDO::PARAM_STR);
 
         $stmt->execute();
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (password_verify($password, $data["password"])) {
+            return true;
+        }
 
-        return (bool) $stmt->fetch(PDO::FETCH_ASSOC)["COUNT(*)"];
+        return false;
     }
 
     public function validateToken(string $id, string $token): bool {

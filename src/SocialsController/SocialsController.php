@@ -16,7 +16,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!validateToken($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
         if ($this->socials_gateway->alreadyFriendsWith($body_data["user_id"], $body_data["receiver_id"])) {
             http_response_code(409);
@@ -66,7 +66,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!validateToken($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
         $requests = $this->socials_gateway->getFriendRequests($body_data["receiver_id"]);
         echo json_encode([
@@ -79,7 +79,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!validateToken($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
         
         http_response_code(200);
         if ($body_data["accept"]) {
@@ -101,7 +101,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!validateToken($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
         $friends = $this->socials_gateway->getFriendships($body_data["user_id"]);
         echo json_encode([
@@ -114,7 +114,7 @@ class SocialsController implements RequestHandler {
             return;
         }
 
-        if (!validateToken($this->users_gateway, $body_data)) { return; }
+        if (!handleTokenValidation($this->users_gateway, $body_data)) { return; }
 
         if (!$this->socials_gateway->alreadyFriendsWith($body_data["user_id"], $body_data["friend_id"])) {
             http_response_code(400);

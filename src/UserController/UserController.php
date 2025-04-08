@@ -68,14 +68,7 @@ class UserController implements RequestHandler {
         $id = $body_data["user_id"];
         $user_data = $this->getUserData($id);
 
-        if (!$this->gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"]);
 
         $rows_affected = $this->gateway->updateUser($user_data, $body_data);
 
@@ -90,14 +83,7 @@ class UserController implements RequestHandler {
         
         $id = $body_data["user_id"];
 
-        if (!$this->gateway->validateToken($body_data["user_id"], $body_data["token"])) {
-            http_response_code(401);
-            echo json_encode([
-                "message" => "You don't have permission to perform this action",
-                "error" => "Invalid token"
-            ]);
-            return;
-        }
+        handleTokenValidation($this->gateway, $body_data["user_id"], $body_data["token"]);
 
         if (!$this->gateway->checkCorrectPassword($id, $body_data["password"])) {
             http_response_code(401);
@@ -121,8 +107,8 @@ class UserController implements RequestHandler {
             return;
         }
 
-        $token = $this->gateway->getUserToken($body_data["username"], $body_data["password"]);
-        if (empty($token)) {
+        $data = $this->gateway->getUserToken($body_data["username"], $body_data["password"]);
+        if (empty($data)) {
             http_response_code(401);
             echo json_encode([
                 "message" => "Invalid username or password"
@@ -134,7 +120,8 @@ class UserController implements RequestHandler {
         http_response_code(200);
         echo json_encode([
             "message" => "Logged in successfully",
-            "token" => $token["token"]
+            "id" => $data["id"],
+            "token" => $data["token"]
         ]);
     }
 
