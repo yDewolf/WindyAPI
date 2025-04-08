@@ -33,6 +33,19 @@ class CommunityGateway {
         return $data;
     }
 
+    public function getCommunityById(string $community_id) : array | false {
+        $sql = "SELECT * FROM communities
+                WHERE name = :community_id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":community_id", $community_id, PDO::PARAM_STR);
+
+        $stmt->execute();
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $data;
+    }
+
     public function alreadyMemberOf(string $user_id, string $community_id) {
         $sql = "SELECT COUNT(*) FROM community_members 
                 WHERE user_id = :user_id AND community_id = :community_id;";
@@ -89,6 +102,50 @@ class CommunityGateway {
         $stmt->execute();
 
         $this->joinCommunity($owner_id, $stmt->fetch(PDO::FETCH_ASSOC)["id"], 4);
+    }
+
+    public function updateCommunity(string $community_id, string $description) {
+        $sql = "UPDATE communities
+                SET description = :description
+                WHERE id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":id", $community_id, PDO::PARAM_STR);
+        $stmt->bindValue(":description", $description, PDO::PARAM_STR);
+
+        $stmt->execute();
+    }
+
+    public function deleteCommunity(string $community_id) {
+        $sql = "DELETE FROM community_members
+                WHERE community_id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":id", $community_id, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        $sql = "DELETE FROM communities
+                WHERE id = :id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":id", $community_id, PDO::PARAM_STR);
+
+        $stmt->execute();
+    }
+
+    public function getRolePermLevel(string $user_id): String | false {
+        $sql = "SELECT R.perm_level FROM community_members M
+                INNER JOIN community_roles R
+                WHERE R.id = M.role_id AND M.user_id = :user_id";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(":user_id", $user_id, PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        $data = $stmt->fetch(PDO::FETCH_ASSOC)["perm_level"];
+        return $data;
     }
 
     public function communityExists(string $community_id) {

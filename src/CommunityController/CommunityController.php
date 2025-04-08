@@ -46,6 +46,65 @@ class CommunityController implements RequestHandler {
         ]);
     }
 
+    public function updateCommunity($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["community_id", "user_id", "token"])) {
+            return;
+        }
+
+        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
+
+        $perm_level = $this->community_gateway->getRolePermLevel($body_data["user_id"]);
+        if ($perm_level < 3) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+            ]);
+            return;
+        }
+
+        $data = $this->community_gateway->getCommunityById($body_data["community_id"]);
+        $this->community_gateway->updateCommunity($body_data["community_id"], $body_data["description"] ?? $data["description"]);
+        echo json_encode([
+            "message" => "Your community has been updated succesfully"
+        ]);
+    }
+
+    public function deleteCommunity($parameters, $body_data) {
+        if (!handleValidationErrors($body_data, true, ["community_id", "user_id", "token"])) {
+            return;
+        }
+
+        if (!$this->users_gateway->validateToken($body_data["user_id"], $body_data["token"])) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+                "error" => "Invalid token"
+            ]);
+            return;
+        }
+
+        $perm_level = $this->community_gateway->getRolePermLevel($body_data["user_id"]);
+        if ($perm_level < 3) {
+            http_response_code(401);
+            echo json_encode([
+                "message" => "You don't have permission to perform this action",
+            ]);
+            return;
+        }
+
+        $this->community_gateway->deleteCommunity($body_data["community_id"]);
+        echo json_encode([
+            "message" => "Your community has been deleted succesfully"
+        ]);
+    }
+
     public function getCommunities($parameters, $body_data) {
         $data = $this->community_gateway->getCommunities();
         echo json_encode($data);

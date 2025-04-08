@@ -27,7 +27,7 @@ CREATE TABLE community_members (
     community_id int NOT NULL,
     role_id int NOT NULL,
     CONSTRAINT FK_UserId FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT FK_CommunityId FOREIGN KEY (community_id) REFERENCES community(id),
+    CONSTRAINT FK_CommunityId FOREIGN KEY (community_id) REFERENCES communities(id),
     CONSTRAINT FK_CommunityRole FOREIGN KEY (role_id) REFERENCES community_roles(id)
 );
 
@@ -38,5 +38,5 @@ CREATE TABLE community_posts (
     post_timestamp timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (community_id) REFERENCES community(id)
+    FOREIGN KEY (community_id) REFERENCES communities(id)
 );
