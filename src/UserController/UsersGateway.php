@@ -25,16 +25,16 @@ class UsersGateway {
         return $data;
     }
 
-    public function createUser(array $data) {
+    public function createUser(string $username, string $email, string $password, ?string $nickname) {
         $sql = "INSERT INTO users (username, email, password, nickname, token)
                 VALUES (:username, :email, :password, :nickname, :token)";
         
         $stmt = $this->conn->prepare($sql);
 
-        $stmt->bindValue(":username", $data["username"], PDO::PARAM_STR);
-        $stmt->bindValue(":email", password_hash($data["email"], PASSWORD_DEFAULT), PDO::PARAM_STR);
-        $stmt->bindValue(":password", password_hash($data["password"], PASSWORD_DEFAULT), PDO::PARAM_STR);
-        $stmt->bindValue(":nickname", $data["nickname"] ?? $data["username"], PDO::PARAM_STR);
+        $stmt->bindValue(":username", $username, PDO::PARAM_STR);
+        $stmt->bindValue(":email", password_hash($email, PASSWORD_DEFAULT), PDO::PARAM_STR);
+        $stmt->bindValue(":password", password_hash($password, PASSWORD_DEFAULT), PDO::PARAM_STR);
+        $stmt->bindValue(":nickname", $nickname ?? $username, PDO::PARAM_STR);
 
         $stmt->bindValue(":token", random_text('alnum', 16), PDO::PARAM_STR);
 
@@ -44,7 +44,7 @@ class UsersGateway {
                 WHERE username = :username";
         
         $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(":username", $data["username"], PDO::PARAM_STR);
+        $stmt->bindValue(":username", $username, PDO::PARAM_STR);
 
         $stmt->execute();
 

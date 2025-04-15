@@ -36,7 +36,12 @@ class UserController implements RequestHandler {
             return;
         }
 
-        $data = $this->gateway->createUser($body_data);
+        $data = $this->gateway->createUser(
+            $body_data["username"],
+            $body_data["email"],
+            $body_data["password"],
+            key_exists("nickname", $body_data) ? $body_data["nickname"] : null
+        );
 
 
         http_response_code(201);
